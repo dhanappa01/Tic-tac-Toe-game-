@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tic Tac Toe </title>
+    <style>
+        body {
+            text-align: center;
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #1a1a1a, #00bfff);
+            color: white;
+            transition: background 0.3s, color 0.3s;
+            box-sizing: border-box;
+        }
+
+        h1, h2, h3 {
+            text-shadow: 2px 2px 10px rgba(255, 255, 255, 0.7);
+        }
+
+        .board {
+            display: grid;
+            grid-template-columns: repeat(3, 100px);
+            grid-template-rows: repeat(3, 100px);
+            gap: 5px;
+            justify-content: center;
+            margin: 30px auto;
+        }
+
+        .cell {
+            width: 100px;
+            height: 100px;
+            background: #1e90ff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2em;
+            cursor: pointer;
+            border: 2px solid #004f8f;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+            transition: background 0.3s, transform 0.2s, box-shadow 0.3s;
+        }
+
+        .cell:hover {
+            background: #104e8b;
+            transform: scale(1.1);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.5);
+        }
+
+        .cell.winner {
+            background: #32cd32;
+            color: black;
+            box-shadow: 0 0 15px rgba(50, 205, 50, 0.8);
+        }
+
+        button {
+            padding: 10px 15px;
+            font-size: 16px;
+            margin: 15px;
+            cursor: pointer;
+            border: none;
+            background: #00bfff;
+            color: white;
+            border-radius: 8px;
+            transition: background 0.3s, transform 0.2s;
+        }
+
+        button:hover {
+            background: #007acc;
+            transform: scale(1.1);
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
+        }
+
+        .scoreboard {
+            margin: 15px;
+            font-size: 18px;
+            text-shadow: 1px 1px 5px rgba(255, 255, 255, 0.6);
+        }
+
+        .timer {
+            font-size: 20px;
+            color: red;
+            text-shadow: 1px 1px 6px rgba(255, 0, 0, 0.6);
+        }
+
+        input[type="text"] {
+            padding: 10px;
+            margin: 5px;
+            font-size: 16px;
+            border-radius: 8px;
+            border: 2px solid #ccc;
+            width: 200px;
+        }
+
+        input[type="text"]:focus {
+            outline: none;
+            border-color: #00bfff;
+        }
+
+        #status {
+            font-size: 22px;
+            text-shadow: 2px 2px 8px rgba(255, 255, 255, 0.7);
+        }
+
+        #playerTurn {
+            font-size: 20px;
+            font-weight: bold;
+            color: #ff4500;
+            margin-top: 20px;
+        }
+
+    </style>
+</head>
+<body>
+
+    <h1>Tic Tac Toe</h1>
+    <h2 id="status">Enter Player Names</h2>
+
+    <div>
+        <input type="text" id="player1Name" placeholder="Player 1 Name" />
+        <input type="text" id="player2Name" placeholder="Player 2 Name" />
+        <button onclick="startGame()">Start Game</button>
+    </div>
+
+    <p class="timer">⏳ Time Left: <span id="timeLeft">60</span>s</p>
+
+    <div class="scoreboard">
+        <p>🏆 Player 1 Wins: <span id="player1Score">0</span></p>
+        <p>🏆 Player 2 Wins: <span id="player2Score">0</span></p>
+    </div>
+
+    <div class="board">
+        <div class="cell" onclick="makeMove(0)"></div>
+        <div class="cell" onclick="makeMove(1)"></div>
+        <div class="cell" onclick="makeMove(2)"></div>
+        <div class="cell" onclick="makeMove(3)"></div>
+        <div class="cell" onclick="makeMove(4)"></div>
+        <div class="cell" onclick="makeMove(5)"></div>
+        <div class="cell" onclick="makeMove(6)"></div>
+        <div class="cell" onclick="makeMove(7)"></div>
+        <div class="cell" onclick="makeMove(8)"></div>
+    </div>
+
+    <button onclick="resetGame()">Restart</button>
+    <button onclick="undoMove()">Undo Move</button>
+
+    <div id="playerTurn">Current Turn: Player 1</div>
+
+    <script>
+        let board = ["", "", "", "", "", "", "", "", ""];
+        let currentPlayer = "X";
+        let gameActive = false;
+        let player1Wins = 0;
+        let player2Wins = 0;
+        let player1Name = "";
+        let player2Name = "";
+        let timer;
+        let timeLeft = 60;
+        let moveHistory = [];
+        let winningLine = [];
+
+        function startGame() {
+            player1Name = document.getElementById("player1Name").value || "Player 1";
+            player2Name = document.getElementById("player2Name").value || "Player 2";
+            document.getElementById("status").innerText = currentPlayer === "X" ? player1Name + "'s turn" : player2Name + "'s turn";
+            document.getElementById("playerTurn").innerText = "Current Turn: " + (currentPlayer === "X" ? player1Name : player2Name);
+            gameActive = true;
+            moveHistory = [];
+            resetGame();
+            startTimer();
+        }
+
+        function startTimer() {
+            clearInterval(timer);
+            timeLeft = 60;
+            document.getElementById("timeLeft").innerText = timeLeft;
+            timer = setInterval(() => {
+                timeLeft--;
+                document.getElementById("timeLeft").innerText = timeLeft;
+                if (timeLeft === 0) {
+                    clearInterval(timer);
+                    switchTurn();
+                }
+            }, 1000);
+        }
+
+        function makeMove(index) {
+            if (board[index] === "" && gameActive) {
+                board[index] = currentPlayer;
+                document.getElementsByClassName("cell")[index].innerText = currentPlayer;
+                moveHistory.push(index);
+                clearInterval(timer);
+
+                if (checkWin()) {
+                    document.getElementById("status").innerText = (currentPlayer === "X" ? player1Name : player2Name) + " wins!";
+                    document.getElementById("playerTurn").innerText = (currentPlayer === "X" ? player1Name : player2Name) + " wins!";
+                    gameActive = false;
+                    updateScore();
+                    highlightWinningLine();
+                    return;
+                }
+
+                if (!board.includes("")) {
+                    document.getElementById("status").innerText = "It's a draw!";
+                    return;
+                }
+
+                switchTurn();
+            }
+        }
+
+        function checkWin() {
+            const winPatterns = [
+                [0, 1, 2], [3, 4, 5], [6, 7, 8], 
+                [0, 3, 6], [1, 4, 7], [2, 5, 8], 
+                [0, 4, 8], [2, 4, 6]
+            ];
+            return winPatterns.some(pattern => {
+                if (board[pattern[0]] !== "" &&
+                    board[pattern[0]] === board[pattern[1]] &&
+                    board[pattern[1]] === board[pattern[2]]) {
+                    winningLine = pattern;
+                    return true;
+                }
+                return false;
+            });
+        }
+
+        function highlightWinningLine() {
+            winningLine.forEach(index => {
+                document.getElementsByClassName("cell")[index].classList.add("winner");
+            });
+        }
+
+        function switchTurn() {
+            currentPlayer = currentPlayer === "X" ? "O" : "X";
+            document.getElementById("status").innerText = (currentPlayer === "X" ? player1Name : player2Name) + "'s turn";
+            document.getElementById("playerTurn").innerText = "Current Turn: " + (currentPlayer === "X" ? player1Name : player2Name);
+            startTimer();
+        }
+
+        function updateScore() {
+            if (currentPlayer === "X") {
+                player1Wins++;
+                document.getElementById("player1Score").innerText = player1Wins;
+            } else {
+                player2Wins++;
+                document.getElementById("player2Score").innerText = player2Wins;
+            }
+        }
+
+        function resetGame() {
+            board = ["", "", "", "", "", "", "", "", ""];
+            currentPlayer = "X";
+            gameActive = true;
+            document.getElementById("status").innerText = currentPlayer === "X" ? player1Name + "'s turn" : player2Name + "'s turn";
+            document.getElementById("playerTurn").innerText = "Current Turn: " + (currentPlayer === "X" ? player1Name : player2Name);
+            Array.from(document.getElementsByClassName("cell")).forEach(cell => cell.innerText = "");
+            Array.from(document.getElementsByClassName("cell")).forEach(cell => cell.classList.remove("winner"));
+            moveHistory = [];
+            startTimer();
+        }
+
+        function undoMove() {
+            if (moveHistory.length > 0 && gameActive) {
+                const lastMove = moveHistory.pop();
+                board[lastMove] = "";
+                document.getElementsByClassName("cell")[lastMove].innerText = "";
+                switchTurn();
+            }
+        }
+    </script>
+
+</body>
+</html>
